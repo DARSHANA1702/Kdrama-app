@@ -47,7 +47,7 @@ public class MainActivityFragment extends Fragment {
     private ArrayAdapter<String> movieAdapter;
     private ArrayAdapter<String> mForecastAdapter;
     movieAdapter adapter;
-
+    DBHelper mydb;
     GridView gridView;
 
     public MainActivityFragment() {
@@ -59,6 +59,7 @@ public class MainActivityFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+        mydb = new DBHelper(getActivity());
     }
 
     @Override
@@ -70,7 +71,9 @@ public class MainActivityFragment extends Fragment {
     public void onStart() {
         super.onStart();
         FetchDramaTask dramaTask  = new FetchDramaTask();
-        dramaTask.execute();
+        if (mydb.checkDrama()){
+            dramaTask.execute();
+        }
     }
 
     @Override
@@ -106,7 +109,9 @@ public class MainActivityFragment extends Fragment {
                 Intent i = new Intent(getActivity(), DetailActivity.class);
                 // passing array index
 
-                i.putExtra(Intent.EXTRA_TEXT, adapter.getItem(position));
+                final String LOG_TAG = MainActivityFragment.class.getSimpleName();
+
+                i.putExtra("Id", position +2);
                 startActivity(i);
             }
         });
@@ -176,6 +181,7 @@ public class MainActivityFragment extends Fragment {
             final String D_SYNOPSIS = "synopsis";
             final String D_IMAGE = "image";
             final String D_DATE = "date";
+            final String D_NAME = "name";
 
             dramaJsonStr = dramaJsonStr + "}";
             dramaJsonStr = "{data: " + dramaJsonStr;
@@ -189,14 +195,19 @@ public class MainActivityFragment extends Fragment {
                     int date;
                     String synopsis;
                     String image;
+                    String name;
 
                     JSONObject dramaEntry = dramaArray.getJSONObject(i);
 
+                    name = dramaEntry.getString(D_NAME);
                     date = dramaEntry.getInt(D_DATE);
                     synopsis = dramaEntry.getString(D_SYNOPSIS);
                     image = dramaEntry.getString(D_IMAGE);
 
                     //add cast and genre later after I reformat JSON on the backend
+
+                    //mydb.destroy();
+                    boolean insert = mydb.insertDrama(name,synopsis,date,image);
 
                     //temp
                     resultStrs[i] = image;
@@ -271,7 +282,6 @@ public class MainActivityFragment extends Fragment {
         @Override
         protected void onPostExecute(String[] result) {
             if (result != null) {
-                Log.v(LOG_TAG, result[0]);
                 adapter.updateResults(new ArrayList<String>(Arrays.asList(result)));
 
                 // New data is back from the server.  Hooray!

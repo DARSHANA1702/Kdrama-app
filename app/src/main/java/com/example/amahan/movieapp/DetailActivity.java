@@ -24,37 +24,57 @@ import java.util.ArrayList;
 public class DetailActivity extends FragmentActivity {
 
 
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.detail_activity);
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new DetailFragment())
                     .commit();
+
         }
     }
 
     public static class DetailFragment extends Fragment {
 
+        private DBHelper mydb;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
 
+            mydb = new DBHelper(getActivity());
 
             View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
 
+            int imageID;
             String imageURL;
+            String dramaName;
+            String synopsis;
+
             // get intent data
             Intent i = getActivity().getIntent();
             // Selected image id
-            imageURL = i.getStringExtra(Intent.EXTRA_TEXT);
-            final String LOG_TAG = DetailActivity.class.getSimpleName();
-            Log.v(LOG_TAG, imageURL);
+            imageID = i.getExtras().getInt("Id");
+            imageURL = mydb.getImage(imageID);
+            dramaName = mydb.getName(imageID);
+            synopsis = mydb.getSynopsis(imageID);
+
 
             ImageView imageView;
             imageView = (ImageView) rootView.findViewById(R.id.detail_view);
+
+            TextView titleTextView;
+            titleTextView = (TextView) rootView.findViewById(R.id.dramaName);
+            titleTextView.setText(dramaName);
+
+            TextView synopsisTextView;
+            synopsisTextView = (TextView) rootView.findViewById(R.id.synopsis);
+            synopsisTextView.setText(synopsis);
 
             Picasso.with(getActivity()).load(imageURL).into(imageView);
 
