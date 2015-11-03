@@ -46,6 +46,8 @@ public class MainActivityFragment extends Fragment {
 
     private ArrayAdapter<String> movieAdapter;
     private ArrayAdapter<String> mForecastAdapter;
+    movieAdapter adapter;
+
     GridView gridView;
 
     public MainActivityFragment() {
@@ -67,6 +69,8 @@ public class MainActivityFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+        FetchDramaTask dramaTask  = new FetchDramaTask();
+        dramaTask.execute();
     }
 
     @Override
@@ -87,13 +91,26 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        FetchDramaTask dramaTask  = new FetchDramaTask();
-        dramaTask.execute();
 
+        adapter = new movieAdapter(getActivity(),new ArrayList<String>());
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         gridView = (GridView) rootView.findViewById(R.id.gridview_Movie);
-        gridView.setAdapter(new movieAdapter(getActivity(),new ArrayList<String>()));
-        //gridView.setAdapter(mForecastAdapter);
+        gridView.setAdapter(adapter);
+
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View v,
+                                    int position, long id) {
+
+                // Sending image id to FullScreenActivity
+                Intent i = new Intent(getActivity(), DetailActivity.class);
+                // passing array index
+
+                i.putExtra(Intent.EXTRA_TEXT, adapter.getItem(position));
+                startActivity(i);
+            }
+        });
+
         return rootView;
     }
 
@@ -113,10 +130,18 @@ public class MainActivityFragment extends Fragment {
             return dramaData.size();
         }
 
+        public void updateResults(ArrayList<String> results) {
+            dramaData = results;
+            //Triggers the list update
+            notifyDataSetChanged();
+        }
+
         //---returns the ID of an item---
-        public Object getItem(int position) {
+        public String getItem(int position) {
             return dramaData.get(position);
         }
+
+        private final String LOG_TAG = FetchDramaTask.class.getSimpleName();
 
         public long getItemId(int position) {
             return position;
@@ -247,8 +272,7 @@ public class MainActivityFragment extends Fragment {
         protected void onPostExecute(String[] result) {
             if (result != null) {
                 Log.v(LOG_TAG, result[0]);
-                ArrayList<String> resultData = new ArrayList<String>(Arrays.asList(result));
-                gridView.setAdapter(new movieAdapter(getActivity(),resultData));
+                adapter.updateResults(new ArrayList<String>(Arrays.asList(result)));
 
                 // New data is back from the server.  Hooray!
             }
