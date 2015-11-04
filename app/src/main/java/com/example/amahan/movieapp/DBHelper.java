@@ -36,7 +36,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     public DBHelper(Context context)
     {
-        super(context, DATABASE_NAME, null,1);
+        super(context, DATABASE_NAME, null, 1);
     }
 
     @Override
@@ -102,8 +102,24 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE)));
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
+
+    public ArrayList<String> getAllDramaImagesDateSort()
+    {
+        ArrayList<String> array_list = new ArrayList<String>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery("select * from drama order by date desc", null);
+        res.moveToFirst();
+        while(res.isAfterLast() == false){
+            array_list.add(res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE)));
+            res.moveToNext();
+        }
+        res.close();
+        return array_list;
+    }
+
 
     public String getSynopsis(int id){
 
@@ -114,6 +130,7 @@ public class DBHelper extends SQLiteOpenHelper {
         res.moveToFirst();
 
         synopsis = res.getString(res.getColumnIndex(DRAMA_COLUMN_SYNOPSIS));
+        res.close();
         return synopsis;
     }
     public String getName(int id){
@@ -125,6 +142,7 @@ public class DBHelper extends SQLiteOpenHelper {
         res.moveToFirst();
 
         name = res.getString(res.getColumnIndex(DRAMA_COLUMN_NAME));
+        res.close();
         return name;
     }
     public int getDate(int id){
@@ -136,6 +154,7 @@ public class DBHelper extends SQLiteOpenHelper {
         res.moveToFirst();
 
         date = res.getInt(res.getColumnIndex(DRAMA_COLUMN_DATE));
+        res.close();
         return date;
     }
     public String getImage(int id){
@@ -147,6 +166,7 @@ public class DBHelper extends SQLiteOpenHelper {
         res.moveToFirst();
 
         image = res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE));
+        res.close();
         return image;
     }
 
@@ -155,6 +175,29 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor res =  db.rawQuery("select * from drama", null);
         return res.moveToFirst();
+    }
+
+    //this is really bad, I need to change soon
+    public int[] getIdByImages(ArrayList<String> images)
+    {
+        int id;
+        int[] idList = new int[images.size()];
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        int counter = 0;
+        Cursor res = null;
+
+        for (int i = 0; i < images.size(); i++) {
+            String where = "where image = '" + images.get(i).toString() + "'";
+            res =  db.rawQuery("select * from drama " + where, null);
+            res.moveToFirst();
+            id = res.getInt(res.getColumnIndex(DRAMA_COLUMN_ID));
+            idList[counter] = id;
+            counter++;
+        }
+        res.close();
+        return idList;
+
     }
 
     public void destroy()

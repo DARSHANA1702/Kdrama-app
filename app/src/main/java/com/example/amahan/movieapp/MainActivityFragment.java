@@ -7,6 +7,9 @@ import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -20,7 +23,9 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
+
 
 import com.squareup.picasso.Picasso;
 
@@ -44,22 +49,43 @@ import java.util.List;
  */
 public class MainActivityFragment extends Fragment {
 
+
     private ArrayAdapter<String> movieAdapter;
     private ArrayAdapter<String> mForecastAdapter;
     movieAdapter adapter;
-    DBHelper mydb;
     GridView gridView;
+    DBHelper mydb;
+    ArrayList<String> dramaImages;
+
 
     public MainActivityFragment() {
     }
 
     ArrayList<String> urls = new ArrayList<>();
 
+    public void onSaveInstanceState(Bundle savedState) {
+
+        super.onSaveInstanceState(savedState);
+        savedState.putStringArrayList("myKey", dramaImages);
+
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         mydb = new DBHelper(getActivity());
+        dramaImages = new ArrayList<>(mydb.getAllDramaImages());
+        if (savedInstanceState != null) {
+            ArrayList<String> values = savedInstanceState.getStringArrayList("myKey");
+            if (values != null) {
+                dramaImages = values;
+            }
+        }
+        else
+        {
+            dramaImages = new ArrayList<>(mydb.getAllDramaImages());
+        }
     }
 
     @Override
@@ -71,7 +97,8 @@ public class MainActivityFragment extends Fragment {
     public void onStart() {
         super.onStart();
         FetchDramaTask dramaTask  = new FetchDramaTask();
-        if (mydb.checkDrama()){
+        //only execute async task if the database is empty
+        if (!mydb.checkDrama()){
             dramaTask.execute();
         }
     }
@@ -83,8 +110,16 @@ public class MainActivityFragment extends Fragment {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
+            mydb.destroy();
             FetchDramaTask dramaTask  = new FetchDramaTask();
             dramaTask.execute();
+            return true;
+        }
+        if (id == R.id.menuSortNewest) {
+            dramaImages= mydb.getAllDramaImagesDateSort();
+            adapter = new movieAdapter(getActivity(),dramaImages);
+            gridView.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -94,8 +129,9 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+        //TODO get off UI thread
+        adapter = new movieAdapter(getActivity(),dramaImages);
 
-        adapter = new movieAdapter(getActivity(),new ArrayList<String>());
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         gridView = (GridView) rootView.findViewById(R.id.gridview_Movie);
         gridView.setAdapter(adapter);
@@ -105,20 +141,27 @@ public class MainActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View v,
                                     int position, long id) {
 
+                int[] ids = adapter.getIds();
                 // Sending image id to FullScreenActivity
                 Intent i = new Intent(getActivity(), DetailActivity.class);
                 // passing array index
 
                 final String LOG_TAG = MainActivityFragment.class.getSimpleName();
 
-                i.putExtra("Id", position +2);
+                for (int dd = 0; dd<ids.length; dd++){
+                    Log.v(LOG_TAG,dramaImages.get(dd));
+                    Log.v(LOG_TAG,Integer.toString(ids[dd]));
+                }
+                Log.v(LOG_TAG,Integer.toString(ids[0]));
+
+                i.putExtra("Id", ids[position]);
                 startActivity(i);
             }
         });
 
         return rootView;
-    }
 
+    }
 
     public class movieAdapter extends BaseAdapter
     {
@@ -139,6 +182,11 @@ public class MainActivityFragment extends Fragment {
             dramaData = results;
             //Triggers the list update
             notifyDataSetChanged();
+        }
+
+        public int[] getIds()
+        {
+            return mydb.getIdByImages(dramaData);
         }
 
         //---returns the ID of an item---
@@ -168,6 +216,7 @@ public class MainActivityFragment extends Fragment {
             return imageView;
         }
     }
+
 
     public class FetchDramaTask extends AsyncTask<String, Void, String[]> {
 
