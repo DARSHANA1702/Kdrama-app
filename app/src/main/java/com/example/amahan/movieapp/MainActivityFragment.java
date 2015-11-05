@@ -49,11 +49,14 @@ import java.util.List;
  */
 public class MainActivityFragment extends Fragment {
 
+    private StaggeredGridLayoutManager stagGridLayout;
 
     private ArrayAdapter<String> movieAdapter;
     private ArrayAdapter<String> mForecastAdapter;
     movieAdapter adapter;
     GridView gridView;
+    RecyclerView recyclerView;
+    DramaRecyclerViewAdapter rcAdapter;
     DBHelper mydb;
     ArrayList<String> dramaImages;
 
@@ -67,7 +70,6 @@ public class MainActivityFragment extends Fragment {
 
         super.onSaveInstanceState(savedState);
         savedState.putStringArrayList("myKey", dramaImages);
-
     }
 
     @Override
@@ -117,9 +119,14 @@ public class MainActivityFragment extends Fragment {
         }
         if (id == R.id.menuSortNewest) {
             dramaImages= mydb.getAllDramaImagesDateSort();
-            adapter = new movieAdapter(getActivity(),dramaImages);
-            gridView.setAdapter(adapter);
-            adapter.notifyDataSetChanged();
+            rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramaImages);
+            stagGridLayout = new StaggeredGridLayoutManager(3,1);
+            recyclerView.setLayoutManager(stagGridLayout);
+            recyclerView.setAdapter(rcAdapter);
+            rcAdapter.notifyDataSetChanged();
+
+           // gridView.setAdapter(adapter);
+           // adapter.notifyDataSetChanged();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -129,35 +136,47 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+
+        View rootView = inflater.inflate(R.layout.temp_activity_main, container, false);
+        RecyclerView recyclerView = (RecyclerView) rootView.findViewById(R.id.recycler_view);
+        recyclerView.setHasFixedSize(true);
+
+        stagGridLayout = new StaggeredGridLayoutManager(3,1);
+        recyclerView.setLayoutManager(stagGridLayout);
+
+        DramaRecyclerViewAdapter rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramaImages);
+        recyclerView.setAdapter(rcAdapter);
+
+
         //TODO get off UI thread
         adapter = new movieAdapter(getActivity(),dramaImages);
 
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        gridView = (GridView) rootView.findViewById(R.id.gridview_Movie);
-        gridView.setAdapter(adapter);
-
-        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View v,
-                                    int position, long id) {
-
-                int[] ids = adapter.getIds();
-                // Sending image id to FullScreenActivity
-                Intent i = new Intent(getActivity(), DetailActivity.class);
-                // passing array index
-
-                final String LOG_TAG = MainActivityFragment.class.getSimpleName();
-
-                for (int dd = 0; dd<ids.length; dd++){
-                    Log.v(LOG_TAG,dramaImages.get(dd));
-                    Log.v(LOG_TAG,Integer.toString(ids[dd]));
-                }
-                Log.v(LOG_TAG,Integer.toString(ids[0]));
-
-                i.putExtra("Id", ids[position]);
-                startActivity(i);
-            }
-        });
+//        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+//        gridView = (GridView) rootView.findViewById(R.id.gridview_Movie);
+//        gridView.setAdapter(adapter);
+//
+//        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//            @Override
+//            public void onItemClick(AdapterView<?> parent, View v,
+//                                    int position, long id) {
+//
+//                int[] ids = adapter.getIds();
+//                // Sending image id to FullScreenActivity
+//                Intent i = new Intent(getActivity(), DetailActivity.class);
+//                // passing array index
+//
+//                final String LOG_TAG = MainActivityFragment.class.getSimpleName();
+//
+//                for (int dd = 0; dd<ids.length; dd++){
+//                    Log.v(LOG_TAG,dramaImages.get(dd));
+//                    Log.v(LOG_TAG,Integer.toString(ids[dd]));
+//                }
+//                Log.v(LOG_TAG,Integer.toString(ids[0]));
+//
+//                i.putExtra("Id", ids[position]);
+//                startActivity(i);
+//            }
+//        });
 
         return rootView;
 
@@ -214,6 +233,58 @@ public class MainActivityFragment extends Fragment {
 
             Picasso.with(context).load(dramaData.get(position)).into(imageView);
             return imageView;
+        }
+    }
+
+    public class DramaRecyclerViewAdapter  extends RecyclerView.Adapter<DramaViewHolders> {
+        private Context context;
+        private ArrayList<String> dramaData;
+        public DramaRecyclerViewAdapter(Context context, ArrayList<String> dramaData) {
+            this.dramaData = dramaData;
+            this.context = context;
+        }
+        @Override
+        public DramaViewHolders onCreateViewHolder(ViewGroup parent, int viewType) {
+            View layoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.drama_list, null);
+            DramaViewHolders rcv = new DramaViewHolders(layoutView);
+            return rcv;
+        }
+        @Override
+        public void onBindViewHolder(DramaViewHolders holder, int position) {
+            holder.countryName.setText("DramaName");
+            Picasso.with(context).load(dramaData.get(position)).into(holder.countryPhoto);
+        }
+        @Override
+        public int getItemCount() {
+            return this.dramaData.size();
+        }
+    }
+    public class DramaViewHolders extends RecyclerView.ViewHolder implements View.OnClickListener {
+        public TextView countryName;
+        public ImageView countryPhoto;
+        public DramaViewHolders(View itemView) {
+            super(itemView);
+            itemView.setOnClickListener(this);
+            countryName = (TextView) itemView.findViewById(R.id.country_name);
+            countryPhoto = (ImageView) itemView.findViewById(R.id.country_photo);
+        }
+        @Override
+        public void onClick(View view) {
+            int[] ids = adapter.getIds();
+            // Sending image id to FullScreenActivity
+            Intent i = new Intent(getActivity(), DetailActivity.class);
+            // passing array index
+
+            final String LOG_TAG = MainActivityFragment.class.getSimpleName();
+
+            for (int dd = 0; dd<ids.length; dd++){
+                Log.v(LOG_TAG,dramaImages.get(dd));
+                Log.v(LOG_TAG,Integer.toString(ids[dd]));
+            }
+            Log.v(LOG_TAG,Integer.toString(ids[0]));
+
+            i.putExtra("Id", ids[getPosition()]);
+            startActivity(i);
         }
     }
 
