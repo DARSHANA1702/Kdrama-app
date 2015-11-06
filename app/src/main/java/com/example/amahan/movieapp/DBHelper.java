@@ -200,6 +200,28 @@ public class DBHelper extends SQLiteOpenHelper {
 
     }
 
+    public String[] getNamebyImages(ArrayList<String> images)
+    {
+        String names;
+        String[] nameList = new String[images.size()];
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        int counter = 0;
+
+        for (int i = 0; i < images.size(); i++) {
+            Cursor res = null;
+            String where = "where image = '" + images.get(i).toString() + "'";
+            res =  db.rawQuery("select * from drama " + where, null);
+            res.moveToFirst();
+            names = res.getString(res.getColumnIndex(DRAMA_COLUMN_NAME));
+            nameList[counter] = names;
+            counter++;
+            res.close();
+        }
+        return nameList;
+
+    }
+
     public void destroy()
     {
         SQLiteDatabase db = this.getReadableDatabase();

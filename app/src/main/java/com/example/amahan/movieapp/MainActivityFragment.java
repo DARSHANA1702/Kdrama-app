@@ -53,7 +53,6 @@ public class MainActivityFragment extends Fragment {
 
     private ArrayAdapter<String> movieAdapter;
     private ArrayAdapter<String> mForecastAdapter;
-    movieAdapter adapter;
     GridView gridView;
     RecyclerView recyclerView;
     DramaRecyclerViewAdapter rcAdapter;
@@ -119,11 +118,7 @@ public class MainActivityFragment extends Fragment {
         }
         if (id == R.id.menuSortNewest) {
             dramaImages= mydb.getAllDramaImagesDateSort();
-            rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramaImages);
-            stagGridLayout = new StaggeredGridLayoutManager(3,1);
-            recyclerView.setLayoutManager(stagGridLayout);
-            recyclerView.setAdapter(rcAdapter);
-            rcAdapter.notifyDataSetChanged();
+            rcAdapter.updateResults(dramaImages,mydb.getNamebyImages(dramaImages));
 
            // gridView.setAdapter(adapter);
            // adapter.notifyDataSetChanged();
@@ -137,69 +132,33 @@ public class MainActivityFragment extends Fragment {
                              Bundle savedInstanceState) {
 
 
+        rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramaImages, mydb.getNamebyImages(dramaImages));
         View rootView = inflater.inflate(R.layout.temp_activity_main, container, false);
         RecyclerView recyclerView = (RecyclerView) rootView.findViewById(R.id.recycler_view);
-        recyclerView.setHasFixedSize(true);
-
         stagGridLayout = new StaggeredGridLayoutManager(3,1);
         recyclerView.setLayoutManager(stagGridLayout);
 
-        DramaRecyclerViewAdapter rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramaImages);
+        recyclerView.setHasFixedSize(true);
         recyclerView.setAdapter(rcAdapter);
-
-
-        //TODO get off UI thread
-        adapter = new movieAdapter(getActivity(),dramaImages);
-
-//        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-//        gridView = (GridView) rootView.findViewById(R.id.gridview_Movie);
-//        gridView.setAdapter(adapter);
-//
-//        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//            @Override
-//            public void onItemClick(AdapterView<?> parent, View v,
-//                                    int position, long id) {
-//
-//                int[] ids = adapter.getIds();
-//                // Sending image id to FullScreenActivity
-//                Intent i = new Intent(getActivity(), DetailActivity.class);
-//                // passing array index
-//
-//                final String LOG_TAG = MainActivityFragment.class.getSimpleName();
-//
-//                for (int dd = 0; dd<ids.length; dd++){
-//                    Log.v(LOG_TAG,dramaImages.get(dd));
-//                    Log.v(LOG_TAG,Integer.toString(ids[dd]));
-//                }
-//                Log.v(LOG_TAG,Integer.toString(ids[0]));
-//
-//                i.putExtra("Id", ids[position]);
-//                startActivity(i);
-//            }
-//        });
 
         return rootView;
 
     }
 
-    public class movieAdapter extends BaseAdapter
-    {
+    public class DramaRecyclerViewAdapter  extends RecyclerView.Adapter<DramaViewHolders> {
         private Context context;
-        private  ArrayList<String> dramaData;
+        private ArrayList<String> dramaData;
+        String[] dramaNames;
 
-        public movieAdapter(Context c, ArrayList<String> data)
-        {
-            context = c;
-            dramaData = data;
+        public DramaRecyclerViewAdapter(Context context, ArrayList<String> dramaData, String[] dramaNames) {
+            this.dramaData = dramaData;
+            this.context = context;
+            this.dramaNames = dramaNames;
         }
 
-        public int getCount() {
-            return dramaData.size();
-        }
-
-        public void updateResults(ArrayList<String> results) {
+        public void updateResults(ArrayList<String> results, String[] names) {
             dramaData = results;
-            //Triggers the list update
+            dramaNames = names;
             notifyDataSetChanged();
         }
 
@@ -208,41 +167,6 @@ public class MainActivityFragment extends Fragment {
             return mydb.getIdByImages(dramaData);
         }
 
-        //---returns the ID of an item---
-        public String getItem(int position) {
-            return dramaData.get(position);
-        }
-
-        private final String LOG_TAG = FetchDramaTask.class.getSimpleName();
-
-        public long getItemId(int position) {
-            return position;
-        }
-
-        //---returns an ImageView view---
-       @Override
-        public View getView(int position, View convertView, ViewGroup parent)
-        {
-            ImageView imageView;
-            if (convertView == null) {
-                imageView = new ImageView(context);
-            }else {
-                imageView = (ImageView) convertView;
-                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            }
-
-            Picasso.with(context).load(dramaData.get(position)).into(imageView);
-            return imageView;
-        }
-    }
-
-    public class DramaRecyclerViewAdapter  extends RecyclerView.Adapter<DramaViewHolders> {
-        private Context context;
-        private ArrayList<String> dramaData;
-        public DramaRecyclerViewAdapter(Context context, ArrayList<String> dramaData) {
-            this.dramaData = dramaData;
-            this.context = context;
-        }
         @Override
         public DramaViewHolders onCreateViewHolder(ViewGroup parent, int viewType) {
             View layoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.drama_list, null);
@@ -251,7 +175,7 @@ public class MainActivityFragment extends Fragment {
         }
         @Override
         public void onBindViewHolder(DramaViewHolders holder, int position) {
-            holder.countryName.setText("DramaName");
+            holder.countryName.setText(dramaNames[position]);
             Picasso.with(context).load(dramaData.get(position)).into(holder.countryPhoto);
         }
         @Override
@@ -270,7 +194,7 @@ public class MainActivityFragment extends Fragment {
         }
         @Override
         public void onClick(View view) {
-            int[] ids = adapter.getIds();
+            int[] ids = rcAdapter.getIds();
             // Sending image id to FullScreenActivity
             Intent i = new Intent(getActivity(), DetailActivity.class);
             // passing array index
@@ -287,7 +211,6 @@ public class MainActivityFragment extends Fragment {
             startActivity(i);
         }
     }
-
 
     public class FetchDramaTask extends AsyncTask<String, Void, String[]> {
 
@@ -349,7 +272,7 @@ public class MainActivityFragment extends Fragment {
             String dramaJsonStr = null;
 
             try {
-                final String dramaBaseURL = "http://rvlvrocelot.pythonanywhere.com/drama/20150601";
+                final String dramaBaseURL = "http://rvlvrocelot.pythonanywhere.com/drama/20151101";
                 URL dramaURL = new URL(dramaBaseURL);
                 urlConnection = (HttpURLConnection) dramaURL.openConnection();
                 urlConnection.setRequestMethod("GET");
@@ -402,7 +325,7 @@ public class MainActivityFragment extends Fragment {
         @Override
         protected void onPostExecute(String[] result) {
             if (result != null) {
-                adapter.updateResults(new ArrayList<String>(Arrays.asList(result)));
+                rcAdapter.updateResults(new ArrayList<String>(),result);
 
                 // New data is back from the server.  Hooray!
             }
