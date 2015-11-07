@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 /**
  * Created by amahan on 11/3/2015.
@@ -106,18 +107,47 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-    public ArrayList<String> getAllDramaImagesDateSort()
+
+    public LinkedHashMap getAllDrama()
     {
-        ArrayList<String> array_list = new ArrayList<String>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery("select * from drama", null);
+        LinkedHashMap drama = new LinkedHashMap();
+        res.moveToFirst();
+        while(res.isAfterLast() == false)
+        {
+            LinkedHashMap dramaInfo = new LinkedHashMap();
+            dramaInfo.put("id",res.getInt(res.getColumnIndex(DRAMA_COLUMN_ID)));
+            dramaInfo.put("image",res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE)));
+
+            //TODO put the rest!
+
+            drama.put(res.getString(res.getColumnIndex(DRAMA_COLUMN_NAME)),dramaInfo);
+            res.moveToNext();
+
+        }
+        return drama;
+    }
+
+    public LinkedHashMap getAllDramaSort()
+    {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor res =  db.rawQuery("select * from drama order by date desc", null);
+        LinkedHashMap drama = new LinkedHashMap();
         res.moveToFirst();
-        while(res.isAfterLast() == false){
-            array_list.add(res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE)));
+        while(res.isAfterLast() == false)
+        {
+            LinkedHashMap dramaInfo = new LinkedHashMap();
+            dramaInfo.put("id",res.getInt(res.getColumnIndex(DRAMA_COLUMN_ID)));
+            dramaInfo.put("image",res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE)));
+
+            //TODO put the rest!
+
+            drama.put(res.getString(res.getColumnIndex(DRAMA_COLUMN_NAME)),dramaInfo);
             res.moveToNext();
+
         }
-        res.close();
-        return array_list;
+        return drama;
     }
 
 
@@ -162,7 +192,7 @@ public class DBHelper extends SQLiteOpenHelper {
         String image;
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from drama where id="+id+"", null );
+        Cursor res =  db.rawQuery("select * from drama where id=" + id + "", null);
         res.moveToFirst();
 
         image = res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE));
@@ -177,50 +207,6 @@ public class DBHelper extends SQLiteOpenHelper {
         return res.moveToFirst();
     }
 
-    //this is really bad, I need to change soon
-    public int[] getIdByImages(ArrayList<String> images)
-    {
-        int id;
-        int[] idList = new int[images.size()];
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        int counter = 0;
-        Cursor res = null;
-
-        for (int i = 0; i < images.size(); i++) {
-            String where = "where image = '" + images.get(i).toString() + "'";
-            res =  db.rawQuery("select * from drama " + where, null);
-            res.moveToFirst();
-            id = res.getInt(res.getColumnIndex(DRAMA_COLUMN_ID));
-            idList[counter] = id;
-            counter++;
-        }
-        res.close();
-        return idList;
-
-    }
-
-    public String[] getNamebyImages(ArrayList<String> images)
-    {
-        String names;
-        String[] nameList = new String[images.size()];
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        int counter = 0;
-
-        for (int i = 0; i < images.size(); i++) {
-            Cursor res = null;
-            String where = "where image = '" + images.get(i).toString() + "'";
-            res =  db.rawQuery("select * from drama " + where, null);
-            res.moveToFirst();
-            names = res.getString(res.getColumnIndex(DRAMA_COLUMN_NAME));
-            nameList[counter] = names;
-            counter++;
-            res.close();
-        }
-        return nameList;
-
-    }
 
     public void destroy()
     {

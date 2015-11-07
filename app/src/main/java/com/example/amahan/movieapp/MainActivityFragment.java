@@ -42,7 +42,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -58,6 +62,7 @@ public class MainActivityFragment extends Fragment {
     DramaRecyclerViewAdapter rcAdapter;
     DBHelper mydb;
     ArrayList<String> dramaImages;
+    LinkedHashMap dramadata;
 
 
     public MainActivityFragment() {
@@ -68,7 +73,7 @@ public class MainActivityFragment extends Fragment {
     public void onSaveInstanceState(Bundle savedState) {
 
         super.onSaveInstanceState(savedState);
-        savedState.putStringArrayList("myKey", dramaImages);
+        savedState.putSerializable("myKey", dramaImages);
     }
 
     @Override
@@ -78,15 +83,17 @@ public class MainActivityFragment extends Fragment {
         mydb = new DBHelper(getActivity());
         dramaImages = new ArrayList<>(mydb.getAllDramaImages());
         if (savedInstanceState != null) {
-            ArrayList<String> values = savedInstanceState.getStringArrayList("myKey");
+            LinkedHashMap values = (LinkedHashMap)savedInstanceState.getSerializable("myKey");
             if (values != null) {
-                dramaImages = values;
+                dramadata = values;
             }
         }
         else
         {
-            dramaImages = new ArrayList<>(mydb.getAllDramaImages());
+            FetchDBTask dbTask = new FetchDBTask();
+            dbTask.execute("normal");
         }
+
     }
 
     @Override
@@ -110,6 +117,7 @@ public class MainActivityFragment extends Fragment {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
+        FetchDBTask dbTask = new FetchDBTask();
         if (id == R.id.action_refresh) {
             mydb.destroy();
             FetchDramaTask dramaTask  = new FetchDramaTask();
@@ -117,11 +125,8 @@ public class MainActivityFragment extends Fragment {
             return true;
         }
         if (id == R.id.menuSortNewest) {
-            dramaImages= mydb.getAllDramaImagesDateSort();
-            rcAdapter.updateResults(dramaImages,mydb.getNamebyImages(dramaImages));
-
-           // gridView.setAdapter(adapter);
-           // adapter.notifyDataSetChanged();
+            dbTask.execute("sort");
+            rcAdapter.updateResults(dramadata);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -132,7 +137,7 @@ public class MainActivityFragment extends Fragment {
                              Bundle savedInstanceState) {
 
 
-        rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramaImages, mydb.getNamebyImages(dramaImages));
+        rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramadata);
         View rootView = inflater.inflate(R.layout.temp_activity_main, container, false);
         RecyclerView recyclerView = (RecyclerView) rootView.findViewById(R.id.recycler_view);
         stagGridLayout = new StaggeredGridLayoutManager(3,1);
@@ -147,24 +152,59 @@ public class MainActivityFragment extends Fragment {
 
     public class DramaRecyclerViewAdapter  extends RecyclerView.Adapter<DramaViewHolders> {
         private Context context;
-        private ArrayList<String> dramaData;
-        String[] dramaNames;
+        private LinkedHashMap dramaData;
 
-        public DramaRecyclerViewAdapter(Context context, ArrayList<String> dramaData, String[] dramaNames) {
+
+        public DramaRecyclerViewAdapter(Context context, LinkedHashMap dramaData) {
             this.dramaData = dramaData;
             this.context = context;
-            this.dramaNames = dramaNames;
         }
 
-        public void updateResults(ArrayList<String> results, String[] names) {
-            dramaData = results;
-            dramaNames = names;
+        public void updateResults(LinkedHashMap results) {
+            this.dramaData = results;
             notifyDataSetChanged();
+        }
+
+        public String[] getNames()
+        {
+            String[] dramaNames = new String[this.dramaData.size()];
+            Set set = dramaData.entrySet();
+            Iterator i = set.iterator();
+            int count = 0;
+            while(i.hasNext()) {
+                Map.Entry me = (Map.Entry)i.next();
+                dramaNames[count] = (String)me.getKey();
+                count++;
+            }
+            return dramaNames;
+        }
+
+        public String[] getImages()
+        {
+            String[] dramaImages = new String[this.dramaData.size()];
+            Set set = dramaData.entrySet();
+            Iterator i = set.iterator();
+            int count = 0;
+            while(i.hasNext()) {
+                Map.Entry me = (Map.Entry)i.next();
+                dramaImages[count] = (String)(((LinkedHashMap)me.getValue()).get("image"));
+                count++;
+            }
+            return dramaImages;
         }
 
         public int[] getIds()
         {
-            return mydb.getIdByImages(dramaData);
+            int[] dramaIds = new int[this.dramaData.size()];
+            Set set = dramaData.entrySet();
+            Iterator i = set.iterator();
+            int count = 0;
+            while(i.hasNext()) {
+                Map.Entry me = (Map.Entry)i.next();
+                dramaIds[count] = (int)(((LinkedHashMap)me.getValue()).get("id"));
+                count++;
+            }
+            return dramaIds;
         }
 
         @Override
@@ -175,8 +215,8 @@ public class MainActivityFragment extends Fragment {
         }
         @Override
         public void onBindViewHolder(DramaViewHolders holder, int position) {
-            holder.countryName.setText(dramaNames[position]);
-            Picasso.with(context).load(dramaData.get(position)).into(holder.countryPhoto);
+            holder.countryName.setText(getNames()[position]);
+            Picasso.with(context).load(getImages()[position]).into(holder.countryPhoto);
         }
         @Override
         public int getItemCount() {
@@ -325,11 +365,38 @@ public class MainActivityFragment extends Fragment {
         @Override
         protected void onPostExecute(String[] result) {
             if (result != null) {
-                rcAdapter.updateResults(new ArrayList<String>(),result);
+               // rcAdapter.updateResults(new ArrayList<String>(),result);
 
                 // New data is back from the server.  Hooray!
             }
         }
+    }
 
+    public class FetchDBTask extends AsyncTask<String, Void, LinkedHashMap> {
+
+        private final String LOG_TAG = FetchDBTask.class.getSimpleName();
+
+        @Override
+        protected  LinkedHashMap doInBackground(String... params){
+            mydb = new DBHelper(getActivity());
+            LinkedHashMap LHM;
+            if (params[0] == "sort")
+            {
+                 LHM = mydb.getAllDramaSort();
+            }
+            else
+            {
+                 LHM = mydb.getAllDrama();
+            }
+            return  LHM;
+        }
+
+        @Override
+        protected void onPostExecute(LinkedHashMap result) {
+            if (result != null) {
+                rcAdapter.updateResults(result);
+                dramadata = result;
+            }
+        }
     }
 }
