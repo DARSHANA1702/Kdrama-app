@@ -13,8 +13,31 @@
                 android:id="@+id/menuSortNewest"
                 android:title="Sort by newest" />
             <item
-                android:id="@+id/menuSortRating"
-                android:title="Sort by rating" />
+                android:id="@+id/menuSortName"
+                android:title="Sort by name" />
         </menu>
     </item>
+    <item
+        android:title="Genre"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/menuGenreAll"
+                android:title="All" />
+            <item
+                android:id="@+id/menuGenreAction"
+                android:title="Action" />
+            <item
+                android:id="@+id/menuGenreComedy"
+                android:title="Comedy" />
+            <item
+                android:id="@+id/menuGenreFamily"
+                android:title="Family" />
+            <item
+                android:id="@+id/menuGenreRomance"
+                android:title="Romance" />
+
+        </menu>
+    </item>
+
 </menu>

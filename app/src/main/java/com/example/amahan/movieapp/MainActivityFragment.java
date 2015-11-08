@@ -64,6 +64,9 @@ public class MainActivityFragment extends Fragment {
     ArrayList<String> dramaImages;
     LinkedHashMap dramadata;
 
+    String sort = "all";
+    String genre = "all";
+
 
     public MainActivityFragment() {
     }
@@ -73,7 +76,7 @@ public class MainActivityFragment extends Fragment {
     public void onSaveInstanceState(Bundle savedState) {
 
         super.onSaveInstanceState(savedState);
-        savedState.putSerializable("myKey", dramaImages);
+        savedState.putSerializable("myKey", dramadata);
     }
 
     @Override
@@ -91,7 +94,7 @@ public class MainActivityFragment extends Fragment {
         else
         {
             FetchDBTask dbTask = new FetchDBTask();
-            dbTask.execute("normal");
+            dbTask.execute("all","all");
         }
 
     }
@@ -107,6 +110,7 @@ public class MainActivityFragment extends Fragment {
         FetchDramaTask dramaTask  = new FetchDramaTask();
         //only execute async task if the database is empty
         if (!mydb.checkDrama()){
+            mydb.destroy();
             dramaTask.execute();
         }
     }
@@ -117,6 +121,8 @@ public class MainActivityFragment extends Fragment {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
+
+
         FetchDBTask dbTask = new FetchDBTask();
         if (id == R.id.action_refresh) {
             mydb.destroy();
@@ -125,10 +131,36 @@ public class MainActivityFragment extends Fragment {
             return true;
         }
         if (id == R.id.menuSortNewest) {
-            dbTask.execute("sort");
-            rcAdapter.updateResults(dramadata);
-            return true;
+            sort = "date";
+            //return true;
         }
+        if (id == R.id.menuSortName){
+            sort = "name";
+           // return true;
+        }
+        if (id == R.id.menuGenreAll){
+            genre = "all";
+            // return true;
+        }
+        if (id == R.id.menuGenreAction){
+            genre = "action";
+            // return true;
+        }
+        if (id == R.id.menuGenreComedy){
+            genre = "comedy";
+            // return true;
+        }
+        if (id == R.id.menuGenreFamily){
+            genre = "family";
+            // return true;
+        }
+        if (id == R.id.menuGenreRomance){
+            genre = "romance";
+            // return true;
+        }
+
+        dbTask.execute(genre,sort);
+        rcAdapter.updateResults(dramadata);
         return super.onOptionsItemSelected(item);
     }
 
@@ -279,6 +311,10 @@ public class MainActivityFragment extends Fragment {
                     String synopsis;
                     String image;
                     String name;
+                    JSONArray genre;
+                    JSONArray cast;
+                    String[] genreList;
+                    String[] castList;
 
                     JSONObject dramaEntry = dramaArray.getJSONObject(i);
 
@@ -287,10 +323,22 @@ public class MainActivityFragment extends Fragment {
                     synopsis = dramaEntry.getString(D_SYNOPSIS);
                     image = dramaEntry.getString(D_IMAGE);
 
+                    genre = dramaEntry.getJSONArray(D_GENRE);
+                    genreList = new String[genre.length()];
+                    for(int ii = 0; ii <genre.length(); ii++){
+                        boolean gen = mydb.insertGenre(i+ 1,genre.getString(ii).replaceAll(",","").toLowerCase());
+                    }
+
+                    cast = dramaEntry.getJSONArray(D_CAST);
+                    castList = new String[cast.length()];
+                    for(int ii = 0; ii <cast.length(); ii++){
+                        boolean cas = mydb.insertCast(i + 1, cast.getString(ii));
+                    }
+
                     //add cast and genre later after I reformat JSON on the backend
 
                     //mydb.destroy();
-                    boolean insert = mydb.insertDrama(name,synopsis,date,image);
+                    boolean insert = mydb.insertDrama(name, synopsis,date,image);
 
                     //temp
                     resultStrs[i] = image;
@@ -380,14 +428,7 @@ public class MainActivityFragment extends Fragment {
         protected  LinkedHashMap doInBackground(String... params){
             mydb = new DBHelper(getActivity());
             LinkedHashMap LHM;
-            if (params[0] == "sort")
-            {
-                 LHM = mydb.getAllDramaSort();
-            }
-            else
-            {
-                 LHM = mydb.getAllDrama();
-            }
+            LHM = mydb.getAllDrama(params[0],params[1]);
             return  LHM;
         }
 

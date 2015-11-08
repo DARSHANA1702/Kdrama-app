@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,11 +50,11 @@ public class DBHelper extends SQLiteOpenHelper {
 
         db.execSQL(
                 "create table cast " +
-                        "(dramaId integer primary key, castName text)"
+                        "(dramaId integer, castName text)"
         );
         db.execSQL(
                 "create table genre " +
-                        "(dramaId integer primary key, genreName text)"
+                        "(dramaId integer, genreName text)"
         );
     }
     @Override
@@ -89,7 +90,7 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put("dramaId", dramaId);
-        contentValues.put("castName", genreName);
+        contentValues.put("genreName", genreName);
         db.insert("genre", null, contentValues);
         return true;
     }
@@ -107,11 +108,51 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-
-    public LinkedHashMap getAllDrama()
+    public void testTable(String tableName)
     {
+        String query = "select * from " + tableName;
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery("select * from drama", null);
+        Cursor res =  db.rawQuery(query, null);
+        res.moveToFirst();
+        while(res.isAfterLast() == false) {
+            Log.v(tableName, res.getString(res.getColumnIndex(GENRE_COLUMN_GENRENAME)));
+            res.moveToNext();
+
+        }
+    }
+
+
+    public LinkedHashMap getAllDrama(String genre, String sort)
+    {;
+        String query ="";
+        if (genre == "all")
+        {
+            if (sort == "all"){
+                query = "select * from drama";
+            }
+            else if(sort == "date"){
+                query = "select * from drama order by date desc";
+            }
+            else if(sort == "name"){
+                query = "select * from drama order by name";
+            }
+        }
+        else
+        {
+            if (sort == "all"){
+                query = "select * from drama where id in (select dramaId from genre where genreName = '" + genre + "')";
+            }
+            else if(sort == "date"){
+                query = "select * from drama where id in (select dramaId from genre where genreName = '" + genre + "') order by date desc";
+            }
+            else if(sort == "name"){
+                query = "select * from drama where id in (select dramaId from genre where genreName = '" + genre + "') order by name";
+            }
+        }
+
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery(query, null);
         LinkedHashMap drama = new LinkedHashMap();
         res.moveToFirst();
         while(res.isAfterLast() == false)
@@ -126,30 +167,9 @@ public class DBHelper extends SQLiteOpenHelper {
             res.moveToNext();
 
         }
+        res.close();
         return drama;
     }
-
-    public LinkedHashMap getAllDramaSort()
-    {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery("select * from drama order by date desc", null);
-        LinkedHashMap drama = new LinkedHashMap();
-        res.moveToFirst();
-        while(res.isAfterLast() == false)
-        {
-            LinkedHashMap dramaInfo = new LinkedHashMap();
-            dramaInfo.put("id",res.getInt(res.getColumnIndex(DRAMA_COLUMN_ID)));
-            dramaInfo.put("image",res.getString(res.getColumnIndex(DRAMA_COLUMN_IMAGE)));
-
-            //TODO put the rest!
-
-            drama.put(res.getString(res.getColumnIndex(DRAMA_COLUMN_NAME)),dramaInfo);
-            res.moveToNext();
-
-        }
-        return drama;
-    }
-
 
     public String getSynopsis(int id){
 
