@@ -27,6 +27,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String DRAMA_COLUMN_SYNOPSIS = "synopsis";
     public static final String DRAMA_COLUMN_DATE = "date";
     public static final String DRAMA_COLUMN_IMAGE = "image";
+    public static final String DRAMA_COLUMN_RATING = "rating";
 
     public static final String CAST_COLUMN_DRAMAID = "dramaId";
     public static final String CAST_COLUMN_CASTNAME = "castName";
@@ -45,7 +46,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(
                 "create table drama " +
-                        "(id integer primary key AUTOINCREMENT, name text,synopsis text, date int, image text)"
+                        "(id integer primary key AUTOINCREMENT, name text,synopsis text, date int, image text, rating int)"
         );
 
         db.execSQL(
@@ -65,7 +66,7 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public boolean insertDrama(String name, String synopsis, int date, String image)
+    public boolean insertDrama(String name, String synopsis, int date, String image, int rating)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -73,6 +74,7 @@ public class DBHelper extends SQLiteOpenHelper {
         contentValues.put("synopsis", synopsis);
         contentValues.put("date", date);
         contentValues.put("image", image);
+        contentValues.put("rating", rating);
         db.insert("drama", null, contentValues);
         return true;
     }
@@ -108,19 +110,6 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-    public void testTable(String tableName)
-    {
-        String query = "select * from " + tableName;
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery(query, null);
-        res.moveToFirst();
-        while(res.isAfterLast() == false) {
-            Log.v(tableName, res.getString(res.getColumnIndex(GENRE_COLUMN_GENRENAME)));
-            res.moveToNext();
-
-        }
-    }
-
 
     public LinkedHashMap getAllDrama(String genre, String sort)
     {;
@@ -136,6 +125,9 @@ public class DBHelper extends SQLiteOpenHelper {
             else if(sort == "name"){
                 query = "select * from drama order by name";
             }
+            else if(sort == "rating"){
+                query = "select * from drama order by rating desc";
+            }
         }
         else
         {
@@ -147,6 +139,9 @@ public class DBHelper extends SQLiteOpenHelper {
             }
             else if(sort == "name"){
                 query = "select * from drama where id in (select dramaId from genre where genreName = '" + genre + "') order by name";
+            }
+            else if(sort == "rating"){
+                query = "select * from drama where id in (select dramaId from genre where genreName = '" + genre + "') order by rating desc";
             }
         }
 
@@ -206,6 +201,18 @@ public class DBHelper extends SQLiteOpenHelper {
         date = res.getInt(res.getColumnIndex(DRAMA_COLUMN_DATE));
         res.close();
         return date;
+    }
+    public int getRating(int id){
+
+        int rating;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery( "select * from drama where id="+id+"", null );
+        res.moveToFirst();
+
+        rating = res.getInt(res.getColumnIndex(DRAMA_COLUMN_RATING));
+        res.close();
+        return rating;
     }
     public String getImage(int id){
 

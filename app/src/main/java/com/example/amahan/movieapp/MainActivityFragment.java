@@ -2,12 +2,10 @@ package com.example.amahan.movieapp;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
+import android.os.SystemClock;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
@@ -17,16 +15,16 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
@@ -37,14 +35,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -62,7 +57,8 @@ public class MainActivityFragment extends Fragment {
     DramaRecyclerViewAdapter rcAdapter;
     DBHelper mydb;
     ArrayList<String> dramaImages;
-    LinkedHashMap dramadata;
+    LinkedHashMap dramadata = new LinkedHashMap();
+
 
     String sort = "all";
     String genre = "all";
@@ -84,6 +80,16 @@ public class MainActivityFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         mydb = new DBHelper(getActivity());
+        DisplayImageOptions defaultOptions = new DisplayImageOptions.Builder()
+                .cacheOnDisc(true).cacheInMemory(true).build();
+
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(
+                getActivity())
+                .defaultDisplayImageOptions(defaultOptions)
+                .discCacheSize(100 * 1024 * 1024).build();
+
+        ImageLoader.getInstance().init(config);
+
         dramaImages = new ArrayList<>(mydb.getAllDramaImages());
         if (savedInstanceState != null) {
             LinkedHashMap values = (LinkedHashMap)savedInstanceState.getSerializable("myKey");
@@ -94,9 +100,8 @@ public class MainActivityFragment extends Fragment {
         else
         {
             FetchDBTask dbTask = new FetchDBTask();
-            dbTask.execute("all","all");
+            dbTask.execute("all", "all");
         }
-
     }
 
     @Override
@@ -138,6 +143,10 @@ public class MainActivityFragment extends Fragment {
             sort = "name";
            // return true;
         }
+        if (id == R.id.menuSortRating){
+            sort = "rating";
+            // return true;
+        }
         if (id == R.id.menuGenreAll){
             genre = "all";
             // return true;
@@ -167,7 +176,6 @@ public class MainActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
 
         rcAdapter = new DramaRecyclerViewAdapter(getActivity(), dramadata);
         View rootView = inflater.inflate(R.layout.temp_activity_main, container, false);
@@ -248,7 +256,13 @@ public class MainActivityFragment extends Fragment {
         @Override
         public void onBindViewHolder(DramaViewHolders holder, int position) {
             holder.countryName.setText(getNames()[position]);
-            Picasso.with(context).load(getImages()[position]).into(holder.countryPhoto);
+            ImageLoader imageLoader = ImageLoader.getInstance();
+            DisplayImageOptions options = new DisplayImageOptions.Builder().cacheInMemory(true)
+                    .cacheOnDisc(true).resetViewBeforeLoading(true)
+                    .build();
+
+            imageLoader.displayImage(getImages()[position], holder.countryPhoto,options);
+            //Picasso.with(context).load(getImages()[position]).into(holder.countryPhoto);
         }
         @Override
         public int getItemCount() {
@@ -261,6 +275,7 @@ public class MainActivityFragment extends Fragment {
         public DramaViewHolders(View itemView) {
             super(itemView);
             itemView.setOnClickListener(this);
+
             countryName = (TextView) itemView.findViewById(R.id.country_name);
             countryPhoto = (ImageView) itemView.findViewById(R.id.country_photo);
         }
@@ -284,11 +299,11 @@ public class MainActivityFragment extends Fragment {
         }
     }
 
-    public class FetchDramaTask extends AsyncTask<String, Void, String[]> {
+    public class FetchDramaTask extends AsyncTask<String, Void, LinkedHashMap> {
 
         private final String LOG_TAG = FetchDramaTask.class.getSimpleName();
 
-        private String[] getDramaDataFromJson(String dramaJsonStr) throws JSONException {
+        private LinkedHashMap getDramaDataFromJson(String dramaJsonStr) throws JSONException {
 
             final String D_DATA = "data";
             final String D_GENRE = "genre";
@@ -297,12 +312,13 @@ public class MainActivityFragment extends Fragment {
             final String D_IMAGE = "image";
             final String D_DATE = "date";
             final String D_NAME = "name";
+            final String D_RATING = "rating";
 
             dramaJsonStr = dramaJsonStr + "}";
             dramaJsonStr = "{data: " + dramaJsonStr;
             JSONObject dramaJson = new JSONObject(dramaJsonStr);
             JSONArray dramaArray = dramaJson.getJSONArray(D_DATA);
-            String[] resultStrs = new String[dramaArray.length()];
+            LinkedHashMap drama = new LinkedHashMap();
 
             try{
                 for(int i = 0; i < dramaArray.length(); i++) {
@@ -311,6 +327,7 @@ public class MainActivityFragment extends Fragment {
                     String synopsis;
                     String image;
                     String name;
+                    int rating;
                     JSONArray genre;
                     JSONArray cast;
                     String[] genreList;
@@ -318,10 +335,17 @@ public class MainActivityFragment extends Fragment {
 
                     JSONObject dramaEntry = dramaArray.getJSONObject(i);
 
+                    LinkedHashMap dramaInfo = new LinkedHashMap();
+
                     name = dramaEntry.getString(D_NAME);
                     date = dramaEntry.getInt(D_DATE);
                     synopsis = dramaEntry.getString(D_SYNOPSIS);
                     image = dramaEntry.getString(D_IMAGE);
+                    rating = dramaEntry.getInt(D_RATING);
+
+                    dramaInfo.put("id",i);
+                    dramaInfo.put("image",image);
+                    drama.put(name,dramaInfo);
 
                     genre = dramaEntry.getJSONArray(D_GENRE);
                     genreList = new String[genre.length()];
@@ -338,22 +362,20 @@ public class MainActivityFragment extends Fragment {
                     //add cast and genre later after I reformat JSON on the backend
 
                     //mydb.destroy();
-                    boolean insert = mydb.insertDrama(name, synopsis,date,image);
+                    boolean insert = mydb.insertDrama(name, synopsis,date,image,rating);
 
-                    //temp
-                    resultStrs[i] = image;
                 }
             }
             catch (JSONException e){
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
-            return resultStrs;
+            return drama;
         }
 
 
         @Override
-        protected  String[] doInBackground(String... params){
+        protected  LinkedHashMap doInBackground(String... params){
 
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
@@ -375,9 +397,6 @@ public class MainActivityFragment extends Fragment {
                 reader = new BufferedReader(new InputStreamReader(inputStream));
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
                     buffer.append(line + "\n");
                 }
                 if (buffer.length() == 0) {
@@ -411,11 +430,10 @@ public class MainActivityFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] result) {
+        protected void onPostExecute(LinkedHashMap result) {
             if (result != null) {
-               // rcAdapter.updateResults(new ArrayList<String>(),result);
-
-                // New data is back from the server.  Hooray!
+               rcAdapter.updateResults(result);
+               //TODO update adapter
             }
         }
     }

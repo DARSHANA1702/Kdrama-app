@@ -55,6 +55,7 @@ public class DetailActivity extends FragmentActivity {
             String imageURL;
             String dramaName;
             String synopsis;
+            int rating;
             int dramadate;
 
             // get intent data
@@ -65,6 +66,7 @@ public class DetailActivity extends FragmentActivity {
             dramaName = mydb.getName(imageID);
             dramadate = mydb.getDate(imageID);
             synopsis = mydb.getSynopsis(imageID);
+            rating = mydb.getRating(imageID);
 
 
             ImageView imageView;
@@ -77,6 +79,10 @@ public class DetailActivity extends FragmentActivity {
             TextView dateTextView;
             dateTextView = (TextView) rootView.findViewById(R.id.dramadate);
             dateTextView.setText("Date aired: " + Integer.toString(dramadate));
+
+            TextView ratingTextView;
+            ratingTextView = (TextView) rootView.findViewById(R.id.rating);
+            ratingTextView.setText("rating: " + Integer.toString(rating));
 
             TextView synopsisTextView;
             synopsisTextView = (TextView) rootView.findViewById(R.id.synopsis);

@@ -15,6 +15,9 @@
             <item
                 android:id="@+id/menuSortName"
                 android:title="Sort by name" />
+            <item
+                android:id="@+id/menuSortRating"
+                android:title="Sort by rating" />
         </menu>
     </item>
     <item
