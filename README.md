@@ -7,7 +7,7 @@ Main screen:
 
 Detail screen:
 
-![alt text](http://i.imgur.com/SEb30Pwl.png "Detail screen")
+![alt text](http://i.imgur.com/RZKvXDBl.png "Detail screen")
 
 [Link to scraper to retrieve the data](https://github.com/rvlvrocelot/kdrama-scraper)
 
