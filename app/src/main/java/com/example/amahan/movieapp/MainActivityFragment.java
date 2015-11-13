@@ -433,7 +433,6 @@ public class MainActivityFragment extends Fragment {
         protected void onPostExecute(LinkedHashMap result) {
             if (result != null) {
                rcAdapter.updateResults(result);
-               //TODO update adapter
             }
         }
     }
