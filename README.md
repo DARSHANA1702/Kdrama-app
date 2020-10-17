@@ -12,3 +12,10 @@ Detail screen:
 [Link to scraper to retrieve the data](https://github.com/rvlvrocelot/kdrama-scraper)
 
 [Link to the backend Flask code to serve the data](https://gist.github.com/rvlvrocelot/0c75cf2b2fa7b1634bd9)
+
+
+
+play store apps :
+
+1)viki
+2)WeTv
